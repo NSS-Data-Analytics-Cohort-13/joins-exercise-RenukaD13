@@ -44,13 +44,14 @@ ORDER BY movie_count DESC
 --Answer = table with 23 distributors and movie count as second column
 
 --Q5. Write a query that returns the five distributors with the highest average movie budget.
-SELECT s.film_title, d.company_name, ROUND(AVG(film_budget),0) AS avg_movie_budget
+
+SELECT d.company_name, ROUND(AVG(r.film_budget),2) AS avg_movie_budget
 FROM specs AS s
 INNER JOIN distributors AS d
 ON s.domestic_distributor_id = d.distributor_id
 INNER JOIN revenue AS r
 USING(movie_id)
-GROUP BY s.film_title, d.company_name
+GROUP BY d.company_name
 ORDER BY avg_movie_budget DESC
 LIMIT 5
 
@@ -62,27 +63,47 @@ INNER JOIN distributors AS d
 ON s.domestic_distributor_id = d.distributor_id
 INNER JOIN rating AS r
 USING(movie_id)
-WHERE headquarters NOT LIKE '%CA' 
-ORDER By imdb_rating DESC
+WHERE d.headquarters NOT ILIKE '%CA' 
+ORDER By r.imdb_rating DESC
+--Answer = 2 movies without having headquartered
 
 --Q7. Which have a higher average rating, movies which are over two hours long or movies which are under two hours?
 
-SELECT s.film_title, s.release_year,s.length_in_min/60  AS length_in_hour, ROUND(AVG(r.imdb_rating),2) AS avg_imdb_rating
+SELECT 'Less than 2 hours' AS movie_length, ROUND(AVG(avg_imdb_rating),2) avg_rating
+FROM (
+SELECT AVG(r.imdb_rating) AS avg_imdb_rating
 FROM specs AS s
 INNER JOIN rating r
-USING(movie_id)
---WHERE s.length_in_min/60 < 2
---103 out of 223 7+ rating
---WHERE s.length_in_min/60 > 2
---8 out of 9 7+ rating
---WHERE s.length_in_min/60 = 2
--- 131 out of 198 7+ rating
-GROUP BY s.film_title, s.release_year, s.length_in_min
---ORDER BY avg_imdb_rating DESC
-ORDER BY avg_imdb_rating DESC, length_in_hour
-
+USING(movie_id) 
+GROUP BY s.length_in_min
+HAVING s.length_in_min<120) 
+UNION ALL
+SELECT 'Greater than 2 hours' AS movie_length, ROUND(AVG(avg_imdb_rating),2) avg_rating
+FROM (
+Select AVG(r.imdb_rating) AS avg_imdb_rating
+FROM specs AS s
+INNER JOIN rating r
+USING(movie_id) 
+GROUP BY s.length_in_min
+HAVING s.length_in_min>=120) 
+--Answer = Movies over 2 hour has higher average rating i.e. 7.26 for over 2 hours and 6.92 for under 2 hours
 
 /* Fun Facts:
 3 movies With G rating throughout = Cars(2 movies),Monsters(2 movies),TOY story(4 movies)
 4 movies Evolved from G to PG = aladdin, Beauty and the Beast,Finding Nemo(G) and Dori(PG), The Lion King 
 1 movie with Null rating = "Wolf Warrior 2" distributor = The H Collective worldwide gross = 870325439 */
+
+/* Q12 - Another way of doing it execution time = 
+SELECT
+	CASE 
+		WHEN s.length_in_min > 120 THEN 'Over 2 hrs'
+		ELSE 'Under 2 hrs' 
+		END AS filtered_length
+,	ROUND(AVG(r.imdb_rating),2) AS avg_imdb
+FROM specs AS s
+	INNER JOIN rating AS r
+		ON s.movie_id = r.movie_id
+GROUP BY 
+	filtered_length
+ORDER BY avg_imdb DESC;*/
+
